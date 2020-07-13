@@ -5,9 +5,11 @@ This repository provides the implementation for the paper "Gabor Layers Enhance 
 This implementation requires [PyTorch](https://pytorch.org/).
 
 # Citation
+```
 @article{perez2020gabor,
     title={Gabor Layers Enhance Network Robustness},
     author={Juan C. {P{\'e}rez} and Motasem Alfarra and Guillaume Jeanneret and Adel Bibi and Ali Thabet and Bernard Ghanem and Pablo {Arbel{\'a}ez}},
     year={2020},
     journal={arXiv:1912.05661},
 }
+```
