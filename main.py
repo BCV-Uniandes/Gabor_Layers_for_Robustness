@@ -5,7 +5,7 @@ Copyright (c) Wei YANG, 2017
 '''
 from __future__ import print_function
 
-# Basic things GG
+# Basic things
 import os
 import pdb
 import sys
@@ -17,7 +17,7 @@ import numpy as np
 import os.path as osp
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from tqdm import tqdm
+
 # Torch-related stuff
 import torch
 import torch.nn as nn
@@ -42,7 +42,7 @@ from utils.adversarial_attacks import pgd_attack
 
 # Import attack script
 from main_attack import main_attack
-from utils.robust_training_utils import update_and_clamp, accuracy
+
 # Import SVD computation script 
 from compute_conv_svs import main_svs_computation
 
@@ -69,7 +69,7 @@ parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
     help='manual epoch number (useful on restarts)')
 parser.add_argument('--train-batch', default=128, type=int, metavar='N',
     help='train batchsize')
-parser.add_argument('--test-batch', default=128, type=int, metavar='N',
+parser.add_argument('--test-batch', default=64, type=int, metavar='N',
     help='test batchsize')
 parser.add_argument('--lr', '--learning-rate', default=1e-2, type=float,
     metavar='LR', help='initial learning rate')
@@ -114,8 +114,6 @@ parser.add_argument('--train-adv', action='store_true',
     help='perform adversarial training')
 parser.add_argument('--finetune', action='store_true',
     help='finetune from imagenet pre-trained weights')
-parser.add_argument('--eps', type=int, default=8, 
-    help='Strength of the adv. attack. e.g., eps=8 -> 8/255')
 parser.add_argument('--use-7x7', action='store_true',
     help='Use a kernel of 7x7 as the first conv (only available for wide-resnet)')
 
@@ -269,6 +267,7 @@ def main():
         transform_test = transforms.Compose([
             transforms.ToTensor()
         ])
+
     elif args.dataset == 'SVHN':
         detph = 16
         widen_factor = 4
@@ -311,8 +310,8 @@ def main():
         testset = datasets.SVHN('data', split='test', transform=transform_test, download=True)
         num_classes = 10
     
-    trainloader = data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True, num_workers=args.workers, drop_last = True)
-    testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers, drop_last = True)
+    trainloader = data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True, num_workers=args.workers)
+    testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers)
 
     # Model
     print("==> creating model '{}'".format(args.arch))
@@ -327,7 +326,7 @@ def main():
             learn_theta=args.learn_theta,
             finetune=args.finetune
         )
-#test
+
     elif args.arch == 'resnet18':
         model = ResNet18(
             dataset=args.dataset,
@@ -429,21 +428,13 @@ def main():
         return
 
     # Train and val
-    delta = None
-    epsilon = args.eps/255 * torch.ones(3)
-    llimit = torch.zeros(3)
-    ulimit = torch.ones(3)
     for epoch in range(start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch)
 
         print('\nEpoch: [%d | %d] LR: %f' % (epoch + 1, args.epochs, state['lr']))
 
-        # train_loss, train_acc = train(
-        #     trainloader, model, criterion, optimizer, epoch, device, train_adv=args.train_adv, args=args)
-        model, train_loss, train_acc, delta = train_free(
-            model, trainloader, criterion, optimizer, args=args,
-            device=device, delta=delta, minibatch_replays=8,
-            epsilon=epsilon, llimit=llimit, ulimit=ulimit)
+        train_loss, train_acc = train(
+            trainloader, model, criterion, optimizer, epoch, device, train_adv=args.train_adv, args=args)
         test_loss, test_acc = test(
             testloader, model, criterion, epoch, device)
 
@@ -522,43 +513,6 @@ def plot_kernels(model, checkpoint, epoch, device):
     filename = os.path.join(checkpoint, f'kernels_epoch_{epoch}.pdf')
     fig.savefig(filename)
     plt.close()
-
-
-def train_free(model, trainloader, criterion, optimizer,
-        args, device='cpu', delta=None, minibatch_replays=8,
-        epsilon=0, llimit=0, ulimit=0):
-    train_loss = AverageMeter()
-    train_acc = AverageMeter()
-    model.train()
-    for img,label in tqdm(trainloader):
-        img, label = img.to(device), label.to(device)
-        if delta is None:
-            delta = torch.zeros_like(img)
-        for _ in range(minibatch_replays): #m is the number of inner restarts
-            delta.requires_grad = True
-            output = model(img + delta[:img.size(0)])
-            loss = criterion(output, label)
-            # check if there's regularization on the sigmas of Gabor layers
-            if args.lambd > 0.:
-                sigmas = get_sigmas(args, model)
-                reg_loss = (sigmas**2).mean()
-                #reg_losses.update(reg_loss.item(), inputs.size(0))
-                # subtract this loss from the other loss
-                loss = loss - args.lambd * reg_loss
-            optimizer.zero_grad()
-            loss.backward()
-            grad = delta.grad.detach()
-            with torch.no_grad():
-                delta[:img.size(0)] = update_and_clamp(
-                    img, grad[:img.size(0)], delta[:img.size(0)], epsilon, epsilon, llimit, ulimit)
-            optimizer.step()
-            delta.grad.zero_()
-            
-        acc = accuracy(output.data, label.data)
-        train_loss.update(loss.item(), img.size(0))
-        train_acc.update(acc.item(), img.size(0))
-    return model, train_loss.avg, train_acc.avg, delta
-
 
 def train(trainloader, model, criterion, optimizer, epoch, device, train_adv, args):
     # switch to train mode
@@ -667,10 +621,10 @@ def test(testloader, model, criterion, epoch, device):
             loss = loss - args.lambd * reg_loss
 
         # measure accuracy and record loss
-        prec1 = accuracy(outputs.data, targets.data)
+        prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
         losses.update(loss.item(), inputs.size(0))
         top1.update(prec1.item(), inputs.size(0))
-        #top5.update(prec5.item(), inputs.size(0))
+        top5.update(prec5.item(), inputs.size(0))
 
         # measure elapsed time
         batch_time.update(time.time() - end)

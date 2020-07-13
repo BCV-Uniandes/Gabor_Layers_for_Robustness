@@ -14,7 +14,8 @@ class ResNet18(nn.Module):
             kernels1=None, kernels2=None, kernels3=None, 
             orientations=8, learn_theta=False, finetune=False):
         super(ResNet18, self).__init__()
-        assert dataset in ['cifar10', 'cifar100', 'imagenet', 'tiny-imagenet']
+        assert dataset in ['cifar10', 'cifar100', 'imagenet', 'tiny-imagenet',
+                           'SVHN']
         if dataset in ['cifar10', 'cifar100']:
             data_mean = [0.5, 0.5, 0.5]
             data_std = [0.2, 0.2, 0.2]
@@ -27,6 +28,10 @@ class ResNet18(nn.Module):
             data_mean = [0.4802, 0.4481, 0.3975]
             data_std = [0.2302, 0.2265, 0.2262]
             pretrained = finetune
+        elif dataset == 'SVHN':
+            data_mean = [0.5, 0.5, 0.5]
+            data_std = [0.5, 0.5, 0.5]
+            pretrained = False
 
         self.mean = nn.Parameter(torch.tensor(data_mean).unsqueeze(0).unsqueeze(2).unsqueeze(3), 
             requires_grad=False)
