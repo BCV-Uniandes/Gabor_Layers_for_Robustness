@@ -81,8 +81,6 @@ parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
     help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=5e-4, type=float,
     metavar='W', help='weight decay (default: 5e-4)')
-parser.add_argument('--optim', default='SGD', type=str,
-    help='optimizer (SGD or Adam)')
 parser.add_argument('--lambd', default=0., type=float,
     help='lambda for regularization of the sigma parameters of the Gabor layer')
 
@@ -95,9 +93,7 @@ parser.add_argument('--resume', default='', type=str, metavar='PATH',
 # Architecture
 parser.add_argument('--arch', '-a', metavar='ARCH', default='vgg16',
     choices=model_names,
-    help='model architecture: ' +
-        ' | '.join(model_names) +
-        ' (default: vgg16)')
+    help='model architecture: ' + ' | '.join(model_names) + ' (default: vgg16)')
 parser.add_argument('--orientations', type=int, default=8, 
     help='Number of orientations between 0 and 2*pi.')
 parser.add_argument('--kernels1', type=int, default=None, 
@@ -129,7 +125,7 @@ args = parser.parse_args()
 state = {k: v for k, v in args._get_kwargs()}
 
 if args.finetune:
-    assert 'imagenet' in args.dataset, "Pre-trained weights are from IN, so fine-tuning should be on (tiny) ImageNet"
+    assert 'imagenet' in args.dataset, "Pre-trained weights are from IN, so fine-tuning should be on ImageNet"
 
 if args.dataset == 'mnist':
     assert args.arch in ['madry', 'lenet'], 'Running on MNIST should be done with Madrys/Lenet architecture'
@@ -158,11 +154,13 @@ def print_to_log(text, txt_file_path):
 	with open(txt_file_path, 'a') as text_file:
 		print(text, file=text_file)
 
+
 def print_training_params(args, txt_file_path):
 	d = vars(args)
 	text = ' | '.join([str(key) + ': ' + str(d[key]) for key in d])
 	# Print to log and console
 	print_to_log(text, txt_file_path)
+
 
 def get_sigmas(args, model):
     sigmas = []
@@ -295,11 +293,6 @@ def main():
         trainset = dataloader(root='.data', train=True, download=True, transform=transform_train)
         testset = dataloader(root='.data', train=False, download=False, transform=transform_test)
 
-    elif args.dataset == 'tiny-imagenet':
-        trainset = datasets.ImageFolder('tiny-imagenet-200/train', transform=transform_train)
-        testset = datasets.ImageFolder('tiny-imagenet-200/val', transform=transform_test)
-        num_classes = 200
-
     elif args.dataset == 'imagenet':
         trainset = datasets.ImageFolder('imagenet/train', transform=transform_train)
         testset = datasets.ImageFolder('imagenet/val', transform=transform_test)
@@ -398,11 +391,7 @@ def main():
     print(param_txt)
 
     criterion = nn.CrossEntropyLoss()
-    if args.optim == 'SGD':
-        print('Using SGD optimizer')
-        optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    elif args.optim == 'Adam':
-       optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     # Resume
     title = f'{args.dataset}-' + args.arch
     if args.resume:
