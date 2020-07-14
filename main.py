@@ -51,8 +51,7 @@ cudnn.deterministic = True
 cudnn.benchmark = False
 
 model_names = ['vgg16', 'resnet18', 'madry', 'lenet', 'alexnet', 'wide-resnet']
-dataset_names = ['cifar10', 'cifar100', 'tiny-imagenet', 'imagenet', 'mnist',
-                 'SVHN']
+dataset_names = ['cifar10', 'cifar100', 'imagenet', 'mnist', 'SVHN']
 
 parser = argparse.ArgumentParser(
     description='PyTorch CIFAR10/CIFAR100/MNIST Gabor-DNN training')
