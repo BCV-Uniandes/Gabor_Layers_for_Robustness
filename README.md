@@ -39,6 +39,19 @@ Next, we describe the arguments related to training Gabor-layered architectures:
 
 * `--lambd` controls the degree of the penalty for regularizing the Gabor layers' Lipschitz constant, according to Theorem 1 in the paper. This argument corresponds to <img src="https://render.githubusercontent.com/render/math?math=\beta"> in the paper's notation.
 
+# Output files
+When running a training procedure (_e.g._, running `python main.py --checkpoint expA --kernels1 3`), several outputs are generated under the directory `expA`. Next, we describe each of these outputs:
+* `checkpoint.pth.tar`. File containing the state dictionary of both the *last* model and the corresponding optimizer, the epoch in which the model was saved, the validation accuracy of the model, and the best validation accuracy that the training procedure had obtained at the moment this file was created.
+
+* `model_best.pth.tar`. File with the same information as `checkpoint.pth.tar`, but the model is the on that had the best validation accuracy of the training procedure.
+
+* `params.txt`. Text file stating the values for all the arguments passed to `main.py`.
+
+* `log.txt`. Text file in which the logging of the training was saved. It contains information regarding Learning Rate, Train Loss, Validation Loss, Train Accuracy, and Validation Accuracy for each epoch.
+
+* Files of the form `kernels_epoch_X.pdf` where `X` is a number from 0 to the number of epochs for which training was run. This file is a PDF depicting the filters that were learnt in the *first* Gabor layer of the model. It shows all the rotation of each filter in such layer. The filters shown are those that the Gabor layer has by the end of epoch `X`.
+
+
 # Citation
 ```
 @article{perez2020gabor,
