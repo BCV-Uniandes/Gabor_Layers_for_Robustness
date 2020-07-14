@@ -51,6 +51,8 @@ When running a training procedure (_e.g._, running `python main.py --checkpoint 
 
 * Files of the form `kernels_epoch_X.pdf` where `X` is a number from 0 to the number of epochs for which training was run. This file is a PDF depicting the filters that were learnt in the *first* Gabor layer of the model. It shows all the rotation of each filter in such layer. The filters shown are those that the Gabor layer has by the end of epoch `X`.
 
+* `attack_results.csv`. A csv file stating, for various attack strengths, the PGD accuracy and flip rates resulting from the PGD attack. This attack is applied on the best-performing model, according to validation accuracy.
+
 
 # Citation
 ```
